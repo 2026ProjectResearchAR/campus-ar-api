@@ -13,13 +13,23 @@
     *   レスポンス: `200 OK` `{"status": "ok", "timestamp": "..."}`
 
 ### 2.2. スポット (POI)
-*   **GET `/api/v1/spots`**
-    *   概要: キャンパス内のスポット一覧を取得する。
-    *   クエリパラメータ:
-        *   `marker_id` (string): ARマーカーのID（指定された場合、このマーカーに紐づくスポットを返す）
-        *   `lat` (number): 緯度（周辺検索用）
-        *   `lng` (number): 経度（周辺検索用）
-        *   `radius` (number): 検索半径（メートル）
+*   **GET `/api/v1/buildings`**
+    *   概要: キャンパス内でARマーカーが設置されている建物（エリア）の一覧を取得する。
+    *   レスポンス:
+        ```json
+        {
+          "data": [
+            {
+              "id": "uuid",
+              "name": "図書館",
+              "marker_count": 3
+            }
+          ]
+        }
+        ```
+
+*   **GET `/api/v1/spots/:marker_id`**
+    *   概要: スキャンしたARマーカーIDに紐づく詳細情報とARアセットを取得する。
     *   レスポンス:
         ```json
         {
@@ -41,16 +51,8 @@
         }
         ```
 
-*   **GET `/api/v1/spots/:id`**
-    *   概要: 特定のスポットの詳細情報を取得する。
-
-### 2.3. イベント
-*   **GET `/api/v1/events`**
-    *   概要: 開催中のイベント一覧を取得する。
-
-### 2.4. ユーザーアクティビティ (要認証)
-*   **POST `/api/v1/users/me/visits`**
-    *   概要: ユーザーが特定のスポットを訪問・チェックインした記録を保存する。
+*   **GET `/api/v1/users/me/visits`**
+    *   概要: ユーザーの訪問履歴を取得する。
     *   リクエストボディ:
         ```json
         {
@@ -65,7 +67,8 @@
 ## 3. データベーススキーマ (Supabase / PostgreSQL) - 概要
 
 *   **`users`**: Supabase Authによって管理（拡張プロファイルテーブルを作成）
-*   **`spots`**: `id`, `name`, `description`, `marker_id` (ARマーカーとの紐付け用), `location (PostGIS Geometry)`, `created_at`
+*   **`buildings`**: `id`, `name`, `description` (建物やエリアの管理)
+*   **`spots`**: `id`, `building_id` (外部キー), `name`, `description`, `marker_id` (ARマーカーとの紐付け用), `created_at`
 *   **`ar_assets`**: `id`, `spot_id`, `type`, `storage_path`, `created_at`
 *   **`events`**: `id`, `title`, `description`, `start_time`, `end_time`
 *   **`user_visits`**: `id`, `user_id`, `spot_id`, `visited_at`
