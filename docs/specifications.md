@@ -16,8 +16,9 @@
 *   **GET `/api/v1/spots`**
     *   概要: キャンパス内のスポット一覧を取得する。
     *   クエリパラメータ:
-        *   `lat` (number): 緯度
-        *   `lng` (number): 経度
+        *   `marker_id` (string): ARマーカーのID（指定された場合、このマーカーに紐づくスポットを返す）
+        *   `lat` (number): 緯度（周辺検索用）
+        *   `lng` (number): 経度（周辺検索用）
         *   `radius` (number): 検索半径（メートル）
     *   レスポンス:
         ```json
@@ -32,7 +33,7 @@
               "ar_assets": [
                 {
                   "type": "3d_model",
-                  "url": "https://r2.example.com/assets/library_mascot.gltf"
+                  "url": "https://r2.example.com/assets/library_mascot.glb"
                 }
               ]
             }
@@ -64,7 +65,7 @@
 ## 3. データベーススキーマ (Supabase / PostgreSQL) - 概要
 
 *   **`users`**: Supabase Authによって管理（拡張プロファイルテーブルを作成）
-*   **`spots`**: `id`, `name`, `description`, `location (PostGIS Geometry)`, `created_at`
+*   **`spots`**: `id`, `name`, `description`, `marker_id` (ARマーカーとの紐付け用), `location (PostGIS Geometry)`, `created_at`
 *   **`ar_assets`**: `id`, `spot_id`, `type`, `storage_path`, `created_at`
 *   **`events`**: `id`, `title`, `description`, `start_time`, `end_time`
 *   **`user_visits`**: `id`, `user_id`, `spot_id`, `visited_at`
