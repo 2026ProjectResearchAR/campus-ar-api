@@ -1,32 +1,140 @@
-import { Hono } from 'hono'
+import { swaggerUI } from '@hono/swagger-ui'
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 
-const app = new Hono()
+const app = new OpenAPIHono()
 
+// トップページ（非APIエンドポイント）
 app.get('/', (c) => {
   return c.text('Hello Hono!')
 })
 
+// Swagger UIエンドポイント
+app.get('/doc', swaggerUI({ url: '/openapi.json' }))
 
-app.get('/api/health', (c) => {
+// OpenAPIのJSONスキーマ生成エンドポイント
+app.doc('/openapi.json', {
+  openapi: '3.1.0',
+  info: {
+    version: '1.0.0',
+    title: 'Campus AR API',
+  },
+})
+
+// === Zod スキーマ定義 ===
+const HealthSchema = z.object({
+  status: z.string(),
+  timestamp: z.string(),
+})
+
+const BuildingSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  marker_count: z.number(),
+})
+
+const ARAssetSchema = z.object({
+  type: z.string(),
+  url: z.string(),
+})
+
+const SpotSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  latitude: z.number(),
+  longitude: z.number(),
+  description: z.string(),
+  ar_assets: z.array(ARAssetSchema),
+})
+
+const VisitSchema = z.object({
+  spot_id: z.string(),
+})
+
+// === ルート定義 ===
+
+// Health Check API
+const healthRoute = createRoute({
+  method: 'get',
+  path: '/api/health',
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: HealthSchema,
+        },
+      },
+      description: 'Health check API',
+    },
+  },
+})
+
+app.openapi(healthRoute, (c) => {
   return c.json({
     status: "ok",
     timestamp: new Date().toISOString(),
   })
 })
 
-app.get('/api/v1/buildings', (c) => {
+// Buildings API
+const buildingsRoute = createRoute({
+  method: 'get',
+  path: '/api/v1/buildings',
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            data: z.array(BuildingSchema)
+          }),
+        },
+      },
+      description: 'Get list of buildings',
+    },
+  },
+})
+
+app.openapi(buildingsRoute, (c) => {
   return c.json({
     data: [
-    {
-      id: "uuid",
-      name: "図書館",
-      marker_count: 3
-    }
-  ]
+      {
+        id: "uuid",
+        name: "図書館",
+        marker_count: 3
+      }
+    ]
   })
 })
 
-app.get('/api/v1/spots/:marker_id', (c) => {
+// Spots API
+const spotsRoute = createRoute({
+  method: 'get',
+  path: '/api/v1/spots/{marker_id}',
+  request: {
+    params: z.object({
+      marker_id: z.string().openapi({
+        param: {
+          name: 'marker_id',
+          in: 'path',
+        },
+        example: 'uuid',
+      }),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            data: z.array(SpotSchema)
+          }),
+        },
+      },
+      description: 'Get spots by marker ID',
+    },
+  },
+})
+
+app.openapi(spotsRoute, (c) => {
   return c.json({
     data: [
       {
@@ -36,19 +144,36 @@ app.get('/api/v1/spots/:marker_id', (c) => {
         longitude: 139.000,
         description: "図書館前のモニュメント",
         ar_assets: [
-        {
-          type: "3d_model",
-          url: "https://r2.example.com/assets/library_mascot.glb"
-        }
-      ]
+          {
+            type: "3d_model",
+            url: "https://r2.example.com/assets/library_mascot.glb"
+          }
+        ]
       }
     ]
   })
 })
 
-app.get('/api/v1/users/me/visits', (c) => {
+// Visits API
+const visitsRoute = createRoute({
+  method: 'get',
+  path: '/api/v1/users/me/visits',
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: VisitSchema,
+        },
+      },
+      description: 'Get user visits',
+    },
+  },
+})
+
+app.openapi(visitsRoute, (c) => {
   return c.json({
-  spot_id: "uuid"
+    spot_id: "uuid"
   })
 })
+
 export default app
