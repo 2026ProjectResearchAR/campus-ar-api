@@ -56,6 +56,9 @@ const VisitSchema = z.object({
 const healthRoute = createRoute({
   method: 'get',
   path: '/api/health',
+  summary: 'ヘルスチェック',
+  description: 'APIの稼働状態を確認する。',
+  tags: ['System'],
   responses: {
     200: {
       content: {
@@ -79,6 +82,9 @@ app.openapi(healthRoute, (c) => {
 const buildingsRoute = createRoute({
   method: 'get',
   path: '/api/v1/buildings',
+  summary: '建物一覧取得',
+  description: 'キャンパス内でARマーカーが設置されている建物（エリア）の一覧を取得する。',
+  tags: ['Spots'],
   responses: {
     200: {
       content: {
@@ -109,6 +115,9 @@ app.openapi(buildingsRoute, (c) => {
 const spotsRoute = createRoute({
   method: 'get',
   path: '/api/v1/spots/{marker_id}',
+  summary: 'スポット詳細情報取得',
+  description: 'スキャンしたARマーカーIDに紐づく詳細情報とARアセットを取得する。',
+  tags: ['Spots'],
   request: {
     params: z.object({
       marker_id: z.string().openapi({
@@ -154,10 +163,13 @@ app.openapi(spotsRoute, (c) => {
   })
 })
 
-// Visits API
+// 言った場所 API　（いらないかも）
 const visitsRoute = createRoute({
   method: 'get',
   path: '/api/v1/users/me/visits',
+  summary: '訪問履歴取得',
+  description: 'ユーザーの訪問履歴を取得する。',
+  tags: ['Users'],
   responses: {
     200: {
       content: {
