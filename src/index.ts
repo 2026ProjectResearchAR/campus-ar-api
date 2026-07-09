@@ -1,54 +1,34 @@
-import { Hono } from 'hono'
+import { swaggerUI } from '@hono/swagger-ui'
+import { OpenAPIHono } from '@hono/zod-openapi'
 
-const app = new Hono()
+import healthApp from './routes/health'
+import buildingsApp from './routes/buildings'
+import spotsApp from './routes/spots'
+import usersApp from './routes/users'
 
+const app = new OpenAPIHono()
+
+// トップページ（非APIエンドポイント）
 app.get('/', (c) => {
   return c.text('Hello Hono!')
 })
 
+// Swagger UIエンドポイント
+app.get('/doc', swaggerUI({ url: '/openapi.json' }))
 
-app.get('/api/health', (c) => {
-  return c.json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-  })
+// OpenAPIのJSONスキーマ生成のためのエンドポイント
+app.doc('/openapi.json', {
+  openapi: '3.1.0',
+  info: {
+    version: '1.0.0',
+    title: 'Campus AR API',
+  },
 })
 
-app.get('/api/v1/buildings', (c) => {
-  return c.json({
-    data: [
-    {
-      id: "uuid",
-      name: "図書館",
-      marker_count: 3
-    }
-  ]
-  })
-})
+// === ルーティングの登録 ===
+app.route('/', healthApp)
+app.route('/', buildingsApp)
+app.route('/', spotsApp)
+app.route('/', usersApp)
 
-app.get('/api/v1/spots/:marker_id', (c) => {
-  return c.json({
-    data: [
-      {
-        id: "uuid",
-        name: "図書館前広場",
-        latitude: 35.000,
-        longitude: 139.000,
-        description: "図書館前のモニュメント",
-        ar_assets: [
-        {
-          type: "3d_model",
-          url: "https://r2.example.com/assets/library_mascot.glb"
-        }
-      ]
-      }
-    ]
-  })
-})
-
-app.get('/api/v1/users/me/visits', (c) => {
-  return c.json({
-  spot_id: "uuid"
-  })
-})
 export default app
