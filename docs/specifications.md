@@ -38,6 +38,10 @@
               "id": "uuid",
               "name": "図書館前広場",
               "description": "図書館前のモニュメント",
+              "building": {
+                "id": "uuid",
+                "name": "図書館"
+              },
               "ar_assets": [
                 {
                   "type": "3d_model",
