@@ -1,6 +1,10 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { HTTPException } from 'hono/http-exception'
 
-const app = new OpenAPIHono()
+import type { Bindings } from '../lib/bindings'
+import { getSupabase } from '../lib/supabase'
+
+const app = new OpenAPIHono<{ Bindings: Bindings }>()
 
 const BuildingSchema = z.object({
   id: z.string(),
@@ -28,16 +32,32 @@ const route = createRoute({
   },
 })
 
-app.openapi(route, (c) => {
-  return c.json({
-    data: [
-      {
-        id: "uuid",
-        name: "図書館",
-        marker_count: 3
-      }
-    ]
-  })
+app.openapi(route, async (c) => {
+  const supabase = getSupabase(c.env)
+
+  // 建物ごとに紐づくスポット（=ARマーカー）数を集計する。
+  const { data, error } = await supabase
+    .from('buildings')
+    .select('id, name, spots(count)')
+    .order('name')
+
+  if (error) {
+    throw new HTTPException(500, { message: '建物一覧の取得に失敗しました' })
+  }
+
+  type BuildingRow = {
+    id: string
+    name: string
+    spots: { count: number }[] | null
+  }
+
+  const buildings = ((data ?? []) as BuildingRow[]).map((b) => ({
+    id: b.id,
+    name: b.name,
+    marker_count: b.spots?.[0]?.count ?? 0,
+  }))
+
+  return c.json({ data: buildings })
 })
 
 export default app
