@@ -29,7 +29,7 @@
         ```
 
 *   **GET `/api/v1/spots/:marker_id`**
-    *   概要: スキャンしたARマーカーIDに紐づく詳細情報とARアセットを取得する。
+    *   概要: スキャンしたARマーカーIDに紐づく詳細情報とARアセットを取得する。マーカーIDで一意に探索する設計のため、緯度・経度は返さない（要件: 厳密な緯度・経度の照合は不要）。
     *   レスポンス:
         ```json
         {
@@ -37,9 +37,11 @@
             {
               "id": "uuid",
               "name": "図書館前広場",
-              "latitude": 35.xxx,
-              "longitude": 139.xxx,
               "description": "図書館前のモニュメント",
+              "building": {
+                "id": "uuid",
+                "name": "図書館"
+              },
               "ar_assets": [
                 {
                   "type": "3d_model",
@@ -51,8 +53,8 @@
         }
         ```
 
-*   **GET `/api/v1/users/me/visits`**
-    *   概要: ユーザーの訪問履歴を取得する。
+*   **POST `/api/v1/users/me/visits`**
+    *   概要: ユーザーが特定のスポットを訪問（ARコンテンツを閲覧）したことを記録する。
     *   リクエストボディ:
         ```json
         {
@@ -60,9 +62,30 @@
         }
         ```
     *   レスポンス: `201 Created`
+        ```json
+        {
+          "data": {
+            "id": "uuid",
+            "spot_id": "uuid",
+            "visited_at": "2026-01-01T00:00:00.000Z"
+          }
+        }
+        ```
 
 *   **GET `/api/v1/users/me/visits`**
-    *   概要: ユーザーの訪問履歴を取得する。
+    *   概要: ユーザーの訪問履歴を一覧で取得する。
+    *   レスポンス: `200 OK`
+        ```json
+        {
+          "data": [
+            {
+              "id": "uuid",
+              "spot_id": "uuid",
+              "visited_at": "2026-01-01T00:00:00.000Z"
+            }
+          ]
+        }
+        ```
 
 ## 3. データベーススキーマ (Supabase / PostgreSQL) - 概要
 
@@ -78,4 +101,7 @@
 1.  **依存関係のインストール:** `npm install`
 2.  **ローカル開発:** `npm run dev` (Wrangler を使用)
 3.  **デプロイ:** `npm run deploy` (Wrangler を用いて Cloudflare にデプロイ)
-4.  **環境変数:** SupabaseのURL、Anon Key、R2の設定などは `.dev.vars` および Cloudflare Dashboard に設定する。
+4.  **環境変数:**
+    *   Workers 実行時のシークレット（Supabase の URL / Anon Key、R2 設定など）は `.dev.vars`（ローカル）および Cloudflare Dashboard / `wrangler secret`（本番）に設定する。
+    *   Prisma（マイグレーション・スキーマ管理）が参照する `DIRECT_URL` は `.env.local` に置く（`prisma.config.ts` 参照）。
+    *   いずれもコミットしない。

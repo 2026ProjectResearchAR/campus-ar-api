@@ -7,12 +7,17 @@ const ARAssetSchema = z.object({
   url: z.string(),
 })
 
+// スポットが属する建物（どの建物にARマーカーがあるかを示す）
+const BuildingSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+})
+
 const SpotSchema = z.object({
   id: z.string(),
   name: z.string(),
-  latitude: z.number(),
-  longitude: z.number(),
-  description: z.string(),
+  description: z.string().nullable(),
+  building: BuildingSchema,
   ar_assets: z.array(ARAssetSchema),
 })
 
@@ -53,9 +58,11 @@ app.openapi(route, (c) => {
       {
         id: "uuid",
         name: "図書館前広場",
-        latitude: 35.000,
-        longitude: 139.000,
         description: "図書館前のモニュメント",
+        building: {
+          id: "uuid",
+          name: "図書館"
+        },
         ar_assets: [
           {
             type: "3d_model",
