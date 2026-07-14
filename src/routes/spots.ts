@@ -10,9 +10,7 @@ const ARAssetSchema = z.object({
 const SpotSchema = z.object({
   id: z.string(),
   name: z.string(),
-  latitude: z.number(),
-  longitude: z.number(),
-  description: z.string(),
+  description: z.string().nullable(),
   ar_assets: z.array(ARAssetSchema),
 })
 
@@ -53,8 +51,6 @@ app.openapi(route, (c) => {
       {
         id: "uuid",
         name: "図書館前広場",
-        latitude: 35.000,
-        longitude: 139.000,
         description: "図書館前のモニュメント",
         ar_assets: [
           {
