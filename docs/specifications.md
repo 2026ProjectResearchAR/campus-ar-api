@@ -95,6 +95,8 @@
 *   **`ar_assets`**: `id`, `spot_id`, `type`, `storage_path`, `created_at`
 *   **`events`**: `id`, `title`, `description`, `start_time`, `end_time`
 *   **`user_visits`**: `id`, `user_id`, `spot_id`, `visited_at`
+*   **`sensors`**: `id`, `building_id` (外部キー, NULL許容), `name`, `type` (例: `people_counter` / `co2` / `temperature`), `unit`, `created_at` (IoTデバイスのメタ情報)
+*   **`sensor_readings`**: `id`, `sensor_id` (外部キー), `value`, `recorded_at` (デバイス側計測時刻), `created_at` (サーバ受信時刻) — 混雑需要予測の元となる時系列計測データ。`(sensor_id, recorded_at)` に複合インデックス
 
 ## 4. 開発・デプロイ手順
 

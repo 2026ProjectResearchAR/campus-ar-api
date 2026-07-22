@@ -13,6 +13,7 @@ model Building {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   spots       Spot[]
+  sensors     Sensor[]
 
   @@map("buildings")
 }
@@ -51,6 +52,32 @@ model Event {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("events")
+}
+
+model Sensor {
+  id         String          @id @default(uuid())
+  buildingId String?         @map("building_id")
+  name       String
+  type       String
+  unit       String?
+  createdAt  DateTime        @default(now()) @map("created_at")
+  building   Building?       @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  readings   SensorReading[]
+
+  @@index([buildingId])
+  @@map("sensors")
+}
+
+model SensorReading {
+  id         String   @id @default(uuid())
+  sensorId   String   @map("sensor_id")
+  value      Float
+  recordedAt DateTime @map("recorded_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  sensor     Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+
+  @@index([sensorId, recordedAt])
+  @@map("sensor_readings")
 }
 
 model UserVisit {
