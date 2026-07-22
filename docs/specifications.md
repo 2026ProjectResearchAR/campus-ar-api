@@ -95,6 +95,8 @@
 *   **`ar_assets`**: `id`, `spot_id`, `type`, `storage_path`, `created_at`
 *   **`events`**: `id`, `title`, `description`, `start_time`, `end_time`
 *   **`user_visits`**: `id`, `user_id`, `spot_id`, `visited_at`
+*   **`sensors`**: `id`, `building_id` (外部キー, NULL許容), `name`, `type` (例: `people_counter` / `co2` / `temperature`), `unit`, `created_at` (IoTデバイスのメタ情報)
+*   **`sensor_readings`**: `id`, `sensor_id` (外部キー), `value`, `recorded_at` (デバイス側計測時刻), `created_at` (サーバ受信時刻) — 混雑需要予測の元となる時系列計測データ。`(sensor_id, recorded_at)` に複合インデックス
 
 ## 4. 開発・デプロイ手順
 
@@ -102,6 +104,10 @@
 2.  **ローカル開発:** `npm run dev` (Wrangler を使用)
 3.  **デプロイ:** `npm run deploy` (Wrangler を用いて Cloudflare にデプロイ)
 4.  **環境変数:**
-    *   Workers 実行時のシークレット（Supabase の URL / Anon Key、R2 設定など）は `.dev.vars`（ローカル）および Cloudflare Dashboard / `wrangler secret`（本番）に設定する。
+    *   Workers 実行時のシークレットは `.dev.vars`（ローカル）および Cloudflare Dashboard / `wrangler secret`（本番）に設定する。必要な変数は `.dev.vars.example` を参照。
+        *   `SUPABASE_URL` / `SUPABASE_ANON_KEY`: PostgREST 経由のデータアクセス（`supabase-js`）に使用。
+        *   `R2_PUBLIC_BASE_URL`: 3Dモデル等の公開URL生成に使用（`storage_path` と連結）。
     *   Prisma（マイグレーション・スキーマ管理）が参照する `DIRECT_URL` は `.env.local` に置く（`prisma.config.ts` 参照）。
     *   いずれもコミットしない。
+
+> **注意:** `buildings` / `spots` を anon key で読めるよう、Supabase 側で該当テーブルの RLS に anon の SELECT ポリシーを設定する（または RLS を無効化する）こと。設定がないとレスポンスが空になる。
