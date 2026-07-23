@@ -87,6 +87,31 @@
         }
         ```
 
+### 2.3. センサ (IoT)
+*   **POST `/api/v1/sensors/:sensor_id/readings`**
+    *   概要: 学内に設置したIoTデバイスから送信されるセンサ計測値を保存する。
+    *   認証: `Authorization: Bearer <SENSOR_INGEST_KEY>`（デバイス用の事前共有キー）。
+    *   リクエストボディ（`recorded_at` は省略時サーバ受信時刻を採用）:
+        ```json
+        {
+          "value": 42,
+          "recorded_at": "2026-01-01T00:00:00.000Z"
+        }
+        ```
+    *   レスポンス: `201 Created`
+        ```json
+        {
+          "data": {
+            "id": "uuid",
+            "sensor_id": "uuid",
+            "value": 42,
+            "recorded_at": "2026-01-01T00:00:00.000Z",
+            "created_at": "2026-01-01T00:00:00.000Z"
+          }
+        }
+        ```
+    *   エラー: `401`（認証失敗）, `404`（`sensor_id` 不明）。
+
 ## 3. データベーススキーマ (Supabase / PostgreSQL) - 概要
 
 *   **`users`**: Supabase Authによって管理（拡張プロファイルテーブルを作成）
@@ -105,7 +130,9 @@
 3.  **デプロイ:** `npm run deploy` (Wrangler を用いて Cloudflare にデプロイ)
 4.  **環境変数:**
     *   Workers 実行時のシークレットは `.dev.vars`（ローカル）および Cloudflare Dashboard / `wrangler secret`（本番）に設定する。必要な変数は `.dev.vars.example` を参照。
-        *   `SUPABASE_URL` / `SUPABASE_ANON_KEY`: PostgREST 経由のデータアクセス（`supabase-js`）に使用。
+        *   `SUPABASE_URL` / `SUPABASE_ANON_KEY`: PostgREST 経由の読み取りアクセス（`supabase-js`）に使用。
+        *   `SUPABASE_SERVICE_ROLE_KEY`: センサ計測値の書き込み（RLS バイパス）に使用。クライアントには公開しない。
+        *   `SENSOR_INGEST_KEY`: IoTデバイスがセンサデータ送信時に提示する事前共有キー。
         *   `R2_PUBLIC_BASE_URL`: 3Dモデル等の公開URL生成に使用（`storage_path` と連結）。
     *   Prisma（マイグレーション・スキーマ管理）が参照する `DIRECT_URL` は `.env.local` に置く（`prisma.config.ts` 参照）。
     *   いずれもコミットしない。
