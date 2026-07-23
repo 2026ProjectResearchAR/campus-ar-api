@@ -5,6 +5,7 @@ import type { Bindings } from './lib/bindings'
 import healthApp from './routes/health'
 import buildingsApp from './routes/buildings'
 import spotsApp from './routes/spots'
+import sensorsApp from './routes/sensors'
 import usersApp from './routes/users'
 
 const app = new OpenAPIHono<{ Bindings: Bindings }>()
@@ -30,6 +31,7 @@ app.doc('/openapi.json', {
 app.route('/', healthApp)
 app.route('/', buildingsApp)
 app.route('/', spotsApp)
+app.route('/', sensorsApp)
 app.route('/', usersApp)
 
 export default app
