@@ -10,7 +10,7 @@ const app = new OpenAPIHono<{ Bindings: Bindings }>()
 // recorded_at はデバイス側の計測時刻（省略時はサーバ受信時刻を採用）。
 const ReadingInputSchema = z.object({
   value: z.number(),
-  recorded_at: z.string().datetime().optional(),
+  recorded_at: z.iso.datetime().optional(),
 })
 
 // 保存済み計測値のレスポンススキーマ。
