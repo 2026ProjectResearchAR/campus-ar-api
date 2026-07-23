@@ -18,6 +18,13 @@ app.get('/', (c) => {
 // Swagger UIエンドポイント
 app.get('/doc', swaggerUI({ url: '/openapi.json' }))
 
+// Supabase Auth の JWT を用いた Bearer 認証スキーム（users/me/* などで使用）
+app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+  type: 'http',
+  scheme: 'bearer',
+  bearerFormat: 'JWT',
+})
+
 // OpenAPIのJSONスキーマ生成のためのエンドポイント
 app.doc('/openapi.json', {
   openapi: '3.1.0',

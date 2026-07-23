@@ -3,7 +3,7 @@
 ## 1. 基本設定
 *   **Base URL:** `https://api.campus-ar.example.com` (本番環境)
 *   **Content-Type:** `application/json`
-*   **認証:** リクエストヘッダーに `Authorization: Bearer <JWT>` を含める。
+*   **認証:** ユーザー向けエンドポイント（`/api/v1/users/me/*`）はリクエストヘッダーに `Authorization: Bearer <JWT>`（Supabase Auth 発行の JWT）を含める。サーバは `supabase-js` の `getUser` でトークンを検証し、失敗時は `401` を返す。
 
 ## 2. エンドポイント一覧
 
@@ -55,6 +55,7 @@
 
 *   **POST `/api/v1/users/me/visits`**
     *   概要: ユーザーが特定のスポットを訪問（ARコンテンツを閲覧）したことを記録する。
+    *   認証: `Authorization: Bearer <JWT>`（必須）。
     *   リクエストボディ:
         ```json
         {
@@ -71,9 +72,11 @@
           }
         }
         ```
+    *   エラー: `401`（認証トークンが無い／無効）。
 
 *   **GET `/api/v1/users/me/visits`**
     *   概要: ユーザーの訪問履歴を一覧で取得する。
+    *   認証: `Authorization: Bearer <JWT>`（必須）。
     *   レスポンス: `200 OK`
         ```json
         {
@@ -86,6 +89,7 @@
           ]
         }
         ```
+    *   エラー: `401`（認証トークンが無い／無効）。
 
 ### 2.3. センサ (IoT)
 *   **POST `/api/v1/sensors/:sensor_id/readings`**
