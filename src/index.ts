@@ -1,12 +1,14 @@
 import { swaggerUI } from '@hono/swagger-ui'
 import { OpenAPIHono } from '@hono/zod-openapi'
 
+import type { Bindings } from './lib/bindings'
 import healthApp from './routes/health'
 import buildingsApp from './routes/buildings'
 import spotsApp from './routes/spots'
+import sensorsApp from './routes/sensors'
 import usersApp from './routes/users'
 
-const app = new OpenAPIHono()
+const app = new OpenAPIHono<{ Bindings: Bindings }>()
 
 // トップページ（非APIエンドポイント）
 app.get('/', (c) => {
@@ -29,6 +31,7 @@ app.doc('/openapi.json', {
 app.route('/', healthApp)
 app.route('/', buildingsApp)
 app.route('/', spotsApp)
+app.route('/', sensorsApp)
 app.route('/', usersApp)
 
 export default app

@@ -21,6 +21,7 @@ node_modules/
 .dev.vars
 .env.local
 
+
 # logs
 logs/
 *.log

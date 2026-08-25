@@ -1,18 +1,27 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { HTTPException } from 'hono/http-exception'
 
-const app = new OpenAPIHono()
+import type { Bindings } from '../lib/bindings'
+import { getSupabase, toPublicAssetUrl } from '../lib/supabase'
+
+const app = new OpenAPIHono<{ Bindings: Bindings }>()
 
 const ARAssetSchema = z.object({
   type: z.string(),
   url: z.string(),
 })
 
+// スポットが属する建物（どの建物にARマーカーがあるかを示す）
+const BuildingSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+})
+
 const SpotSchema = z.object({
   id: z.string(),
   name: z.string(),
-  latitude: z.number(),
-  longitude: z.number(),
-  description: z.string(),
+  description: z.string().nullable(),
+  building: BuildingSchema,
   ar_assets: z.array(ARAssetSchema),
 })
 
@@ -47,24 +56,48 @@ const route = createRoute({
   },
 })
 
-app.openapi(route, (c) => {
-  return c.json({
-    data: [
-      {
-        id: "uuid",
-        name: "図書館前広場",
-        latitude: 35.000,
-        longitude: 139.000,
-        description: "図書館前のモニュメント",
-        ar_assets: [
-          {
-            type: "3d_model",
-            url: "https://r2.example.com/assets/library_mascot.glb"
-          }
-        ]
-      }
-    ]
+app.openapi(route, async (c) => {
+  const { marker_id } = c.req.valid('param')
+  const supabase = getSupabase(c.env)
+
+  // marker_id は一意。紐づく建物とARアセットを一括で取得する。
+  const { data, error } = await supabase
+    .from('spots')
+    .select('id, name, description, building:buildings(id, name), ar_assets(type, storage_path)')
+    .eq('marker_id', marker_id)
+
+  if (error) {
+    throw new HTTPException(500, { message: 'スポット情報の取得に失敗しました' })
+  }
+
+  type BuildingRef = { id: string; name: string }
+  type SpotRow = {
+    id: string
+    name: string
+    description: string | null
+    // PostgREST の埋め込みは単一オブジェクト／配列いずれの形でも来うるため両対応する。
+    building: BuildingRef | BuildingRef[] | null
+    ar_assets: { type: string; storage_path: string }[] | null
+  }
+
+  const spots = ((data ?? []) as unknown as SpotRow[]).map((s) => {
+    const building = Array.isArray(s.building) ? s.building[0] : s.building
+    if (!building) {
+      throw new HTTPException(500, { message: 'スポットに紐づく建物が見つかりません' })
+    }
+    return {
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      building: { id: building.id, name: building.name },
+      ar_assets: (s.ar_assets ?? []).map((a) => ({
+        type: a.type,
+        url: toPublicAssetUrl(c.env, a.storage_path),
+      })),
+    }
   })
+
+  return c.json({ data: spots })
 })
 
 export default app
