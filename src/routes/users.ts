@@ -1,9 +1,10 @@
 import { createRoute, z } from '@hono/zod-openapi'
 
-import type { Bindings } from '../lib/bindings'
 import { requireAuth, type AuthVariables } from '../lib/auth'
+import { createApp } from '../lib/app'
+import { errorResponse } from '../lib/errors'
 
-const app = new OpenAPIHono<{ Bindings: Bindings; Variables: AuthVariables }>()
+const app = createApp<AuthVariables>()
 
 // users/me/* は Supabase Auth の JWT による認証を必須とする。
 app.use('/api/v1/users/me/*', requireAuth)
@@ -46,7 +47,8 @@ const createVisitRoute = createRoute({
       },
       description: 'Visit recorded',
     },
-    401: { description: 'Unauthorized' },
+    400: errorResponse('リクエストの内容が不正です'),
+    401: errorResponse('認証に失敗しました'),
   },
 })
 
@@ -69,7 +71,7 @@ const listVisitsRoute = createRoute({
       },
       description: 'Get user visits',
     },
-    401: { description: 'Unauthorized' },
+    401: errorResponse('認証に失敗しました'),
   },
 })
 
@@ -96,15 +98,18 @@ app.openapi(listVisitsRoute, (c) => {
   const userId = c.get('userId')
 
   // TODO: user_visits テーブルから userId の訪問履歴を SELECT する（現状はモック返却）。
-  return c.json({
-    data: [
-      {
-        id: 'uuid',
-        spot_id: 'uuid',
-        visited_at: new Date().toISOString(),
-      },
-    ],
-  })
+  return c.json(
+    {
+      data: [
+        {
+          id: 'uuid',
+          spot_id: 'uuid',
+          visited_at: new Date().toISOString(),
+        },
+      ],
+    },
+    200
+  )
 })
 
 export default app
