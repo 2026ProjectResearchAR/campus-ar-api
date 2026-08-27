@@ -24,7 +24,7 @@ pie showData
 
 - エンドポイント: **7 実装**（うち 5 が実データ接続、2 がモック返却）
 - DBスキーマ: **7 モデル定義済み**（マイグレーション 2 件適用）
-- 主要な残タスク: ユーザー認証（Supabase Auth / JWT）、訪問記録のDB接続、R2アセット管理
+- 主要な残タスク: 訪問記録のDB接続（認証は実装済み）、イベントAPI、R2アセット管理
 
 ## エンドポイント別ステータス
 
@@ -66,7 +66,7 @@ pie showData
 | ✅ | エラーレスポンスの共通化 | `{error:{code,message}}` に統一（`app.onError` / `notFound` / `defaultHook`） |
 | ✅ | 型チェック / CI | `npm run typecheck` + GitHub Actions（PR・push で実行） |
 | 🟡 | 環境変数・シークレット整備 | `.dev.vars.example` 提供済み |
-| 🔴 | ユーザー認証（Supabase Auth / JWT） | `Authorization: Bearer <JWT>` 検証未実装 |
+| ✅ | ユーザー認証（Supabase Auth / JWT） | `requireAuth` ミドルウェアで `getUser` 検証、`users/me/*` に適用 |
 | 🔴 | R2 アセットのアップロード / 管理 | 現状は参照URL生成のみ |
 | 🔴 | Cloudflare Workers 本番デプロイ | 未確認 |
 | 🔴 | 自動テスト（ユニット / E2E） | 未整備（CIは型チェックのみ） |
@@ -94,6 +94,9 @@ flowchart LR
 
 ## 今後のロードマップ
 
+1. ~~**ユーザー認証の実装**~~ ✅ 完了 — Supabase Auth の JWT を `requireAuth` で検証し、`users/me/*` を認証必須化
+2. **訪問記録のDB接続** — `user_visits` テーブルへ実データで読み書き（認証済みの `userId` を利用。現状モック）
+3. **イベントAPIの実装** — `events` テーブルを配信するエンドポイント追加
 1. **ユーザー認証の実装** — Supabase Auth の JWT を検証し、`users/me/visits` を認証必須化する
 2. **訪問記録のDB接続** — `user_visits` テーブルへ実データで読み書き（現状モック）
 3. ~~**イベントAPIの実装**~~ ✅ 完了 — `GET /api/v1/events`（`events` テーブル配信、`upcoming` 絞り込み対応）
