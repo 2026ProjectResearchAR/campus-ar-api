@@ -1,10 +1,11 @@
-import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
 
-import type { Bindings } from '../lib/bindings'
+import { createApp } from '../lib/app'
+import { errorResponse } from '../lib/errors'
 import { getSupabaseAdmin } from '../lib/supabase'
 
-const app = new OpenAPIHono<{ Bindings: Bindings }>()
+const app = createApp()
 
 // 送信された計測値1件のリクエストスキーマ。
 // recorded_at はデバイス側の計測時刻（省略時はサーバ受信時刻を採用）。
@@ -53,8 +54,10 @@ const route = createRoute({
       },
       description: 'Reading recorded',
     },
-    401: { description: 'Unauthorized' },
-    404: { description: 'Sensor not found' },
+    400: errorResponse('リクエストの内容が不正です'),
+    401: errorResponse('認証に失敗しました'),
+    404: errorResponse('指定されたセンサが見つかりません'),
+    500: errorResponse('センサ計測値の保存に失敗しました'),
   },
 })
 

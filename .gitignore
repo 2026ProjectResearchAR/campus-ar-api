@@ -15,6 +15,9 @@ dist/
 node_modules/
 .wrangler
 
+# generated (npm run cf-typegen で再生成する)
+worker-configuration.d.ts
+
 # env
 .env
 .env.production

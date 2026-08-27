@@ -1,6 +1,6 @@
 # Campus AR API - 進行状況
 
-> 最終更新: 2026-07-23
+> 最終更新: 2026-08-27
 > ブランチ運用: `main`（本番） ← `develop`（開発統合） ← 各作業ブランチ
 
 本ドキュメントは開発の進行状況を一目で把握するためのものです。実装の詳細は各ソース・[`docs/specifications.md`](specifications.md) を参照してください。
@@ -63,11 +63,13 @@ pie showData
 | ✅ | Supabase 書き込み接続 | service role key（RLS バイパス, センサ登録） |
 | ✅ | デバイス認証 | `SENSOR_INGEST_KEY`（事前共有キー） |
 | ✅ | R2 公開URL生成 | `storage_path` → 公開URL 変換のみ |
+| ✅ | エラーレスポンスの共通化 | `{error:{code,message}}` に統一（`app.onError` / `notFound` / `defaultHook`） |
+| ✅ | 型チェック / CI | `npm run typecheck` + GitHub Actions（PR・push で実行） |
 | 🟡 | 環境変数・シークレット整備 | `.dev.vars.example` 提供済み |
 | 🔴 | ユーザー認証（Supabase Auth / JWT） | `Authorization: Bearer <JWT>` 検証未実装 |
 | 🔴 | R2 アセットのアップロード / 管理 | 現状は参照URL生成のみ |
 | 🔴 | Cloudflare Workers 本番デプロイ | 未確認 |
-| 🔴 | 自動テスト / CI | 未整備 |
+| 🔴 | 自動テスト（ユニット / E2E） | 未整備（CIは型チェックのみ） |
 
 ## アーキテクチャ（データフロー）
 
@@ -96,4 +98,8 @@ flowchart LR
 2. **訪問記録のDB接続** — `user_visits` テーブルへ実データで読み書き（現状モック）
 3. ~~**イベントAPIの実装**~~ ✅ 完了 — `GET /api/v1/events`（`events` テーブル配信、`upcoming` 絞り込み対応）
 4. **R2アセット管理** — 3Dモデルのアップロード・削除フローの整備
-5. **デプロイ / CI** — Cloudflare Workers への本番デプロイ手順確立と自動テスト整備
+5. ~~**エラーレスポンスの共通化**~~ ✅ 完了 — 全エンドポイントで `{error:{code,message}}` 形式に統一
+6. ~~**型チェック / CI**~~ ✅ 完了 — `npm run typecheck` と GitHub Actions を整備
+7. **自動テスト** — ルート単位のテスト（`vitest` + `@cloudflare/vitest-pool-workers` 等）を追加し CI に載せる
+8. **本番デプロイ** — Cloudflare Workers へのデプロイ手順確立とシークレット設定
+9. **センサ計測値の取得API** — `GET /api/v1/sensors/{sensor_id}/readings`（現状は書き込み専用）

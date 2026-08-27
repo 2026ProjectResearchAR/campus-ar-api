@@ -3,6 +3,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "pretypecheck": "npm run cf-typegen",
+    "typecheck": "tsc --noEmit",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
@@ -18,7 +20,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "dotenv": "^17.4.2",
     "supabase": "^2.110.0-beta.18",
+    "typescript": "^7.0.2",
     "wrangler": "^4.4.0"
   }
 }

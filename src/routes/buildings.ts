@@ -1,10 +1,11 @@
-import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
 
-import type { Bindings } from '../lib/bindings'
+import { createApp } from '../lib/app'
+import { errorResponse } from '../lib/errors'
 import { getSupabase } from '../lib/supabase'
 
-const app = new OpenAPIHono<{ Bindings: Bindings }>()
+const app = createApp()
 
 const BuildingSchema = z.object({
   id: z.string(),
@@ -29,6 +30,7 @@ const route = createRoute({
       },
       description: 'Get list of buildings',
     },
+    500: errorResponse('建物一覧の取得に失敗しました'),
   },
 })
 
@@ -57,7 +59,7 @@ app.openapi(route, async (c) => {
     marker_count: b.spots?.[0]?.count ?? 0,
   }))
 
-  return c.json({ data: buildings })
+  return c.json({ data: buildings }, 200)
 })
 
 export default app
