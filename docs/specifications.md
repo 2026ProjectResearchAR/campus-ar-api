@@ -5,6 +5,34 @@
 *   **Content-Type:** `application/json`
 *   **認証:** ユーザー向けエンドポイント（`/api/v1/users/me/*`）はリクエストヘッダーに `Authorization: Bearer <JWT>`（Supabase Auth 発行の JWT）を含める。サーバは `supabase-js` の `getUser` でトークンを検証し、失敗時は `401` を返す。
 
+## 1.1. 共通のエラーレスポンス
+
+エラー時は、HTTPステータスコードに関わらず全エンドポイントで下記の形式を返す（成功時の `{"data": ...}` と対になる形）。
+
+```json
+{
+  "error": {
+    "code": "not_found",
+    "message": "指定されたセンサが見つかりません"
+  }
+}
+```
+
+*   `code`: エラー種別を示す機械可読な文字列。クライアントはこの値で分岐する。
+*   `message`: 人間向けの日本語メッセージ。UIにそのまま出す用途は想定しない。
+*   `details`: 任意。リクエストバリデーション失敗時は Zod の issue 配列が入る。
+
+| ステータス | `code` | 発生条件 |
+| :-- | :-- | :-- |
+| 400 | `bad_request` | パス/クエリ/ボディのバリデーション失敗 |
+| 401 | `unauthorized` | 認証情報が無い、または不正 |
+| 403 | `forbidden` | 権限不足 |
+| 404 | `not_found` | リソース、または存在しないエンドポイント |
+| 409 | `conflict` | 一意制約違反など |
+| 500 | `internal_server_error` | サーバ内部エラー（詳細はクライアントに返さない） |
+
+実装は `src/lib/errors.ts`（スキーマ・ヘルパー）、`src/lib/app.ts`（バリデーション失敗時の `defaultHook`）、`src/index.ts`（`app.onError` / `app.notFound`）に集約されている。
+
 ## 2. エンドポイント一覧
 
 ### 2.1. ヘルスチェック
@@ -151,8 +179,9 @@
 
 1.  **依存関係のインストール:** `npm install`
 2.  **ローカル開発:** `npm run dev` (Wrangler を使用)
-3.  **デプロイ:** `npm run deploy` (Wrangler を用いて Cloudflare にデプロイ)
-4.  **環境変数:**
+3.  **型チェック:** `npm run typecheck` — Cloudflare Bindings の型を再生成（`wrangler types`）してから `tsc --noEmit` を実行する。GitHub Actions（`.github/workflows/ci.yaml`）が `main` / `develop` 向けのPR・pushで同じコマンドを走らせる。
+4.  **デプロイ:** `npm run deploy` (Wrangler を用いて Cloudflare にデプロイ)
+5.  **環境変数:**
     *   Workers 実行時のシークレットは `.dev.vars`（ローカル）および Cloudflare Dashboard / `wrangler secret`（本番）に設定する。必要な変数は `.dev.vars.example` を参照。
         *   `SUPABASE_URL` / `SUPABASE_ANON_KEY`: PostgREST 経由の読み取りアクセス（`supabase-js`）に使用。
         *   `SUPABASE_SERVICE_ROLE_KEY`: センサ計測値の書き込み（RLS バイパス）に使用。クライアントには公開しない。

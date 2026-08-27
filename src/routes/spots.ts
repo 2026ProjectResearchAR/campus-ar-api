@@ -1,10 +1,11 @@
-import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
 
-import type { Bindings } from '../lib/bindings'
+import { createApp } from '../lib/app'
+import { errorResponse } from '../lib/errors'
 import { getSupabase, toPublicAssetUrl } from '../lib/supabase'
 
-const app = new OpenAPIHono<{ Bindings: Bindings }>()
+const app = createApp()
 
 const ARAssetSchema = z.object({
   type: z.string(),
@@ -53,6 +54,8 @@ const route = createRoute({
       },
       description: 'Get spots by marker ID',
     },
+    400: errorResponse('リクエストの内容が不正です'),
+    500: errorResponse('スポット情報の取得に失敗しました'),
   },
 })
 
@@ -97,7 +100,7 @@ app.openapi(route, async (c) => {
     }
   })
 
-  return c.json({ data: spots })
+  return c.json({ data: spots }, 200)
 })
 
 export default app

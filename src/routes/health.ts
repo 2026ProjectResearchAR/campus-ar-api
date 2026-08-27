@@ -1,6 +1,8 @@
-import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi'
 
-const app = new OpenAPIHono()
+import { createApp } from '../lib/app'
+
+const app = createApp()
 
 const HealthSchema = z.object({
   status: z.string(),

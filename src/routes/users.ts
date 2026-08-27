@@ -1,4 +1,4 @@
-import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi'
 
 import type { Bindings } from '../lib/bindings'
 import { requireAuth, type AuthVariables } from '../lib/auth'
