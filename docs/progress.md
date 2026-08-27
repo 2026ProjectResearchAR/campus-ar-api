@@ -96,9 +96,6 @@ flowchart LR
 
 1. ~~**ユーザー認証の実装**~~ ✅ 完了 — Supabase Auth の JWT を `requireAuth` で検証し、`users/me/*` を認証必須化
 2. **訪問記録のDB接続** — `user_visits` テーブルへ実データで読み書き（認証済みの `userId` を利用。現状モック）
-3. **イベントAPIの実装** — `events` テーブルを配信するエンドポイント追加
-1. **ユーザー認証の実装** — Supabase Auth の JWT を検証し、`users/me/visits` を認証必須化する
-2. **訪問記録のDB接続** — `user_visits` テーブルへ実データで読み書き（現状モック）
 3. ~~**イベントAPIの実装**~~ ✅ 完了 — `GET /api/v1/events`（`events` テーブル配信、`upcoming` 絞り込み対応）
 4. **R2アセット管理** — 3Dモデルのアップロード・削除フローの整備
 5. ~~**エラーレスポンスの共通化**~~ ✅ 完了 — 全エンドポイントで `{error:{code,message}}` 形式に統一
