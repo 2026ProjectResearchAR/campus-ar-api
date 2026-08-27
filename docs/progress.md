@@ -24,7 +24,8 @@ pie showData
 
 - エンドポイント: **7 実装**（うち 5 が実データ接続、2 がモック返却）
 - DBスキーマ: **7 モデル定義済み**（マイグレーション 2 件適用）
-- 主要な残タスク: 訪問記録のDB接続（認証は実装済み）、イベントAPI、R2アセット管理
+- 自動テスト: **25 件**（7 ファイル / 全エンドポイントを網羅、CI で実行）
+- 主要な残タスク: 訪問記録のDB接続（認証は実装済み）、R2アセット管理、本番デプロイ
 
 ## エンドポイント別ステータス
 
@@ -65,11 +66,33 @@ pie showData
 | ✅ | R2 公開URL生成 | `storage_path` → 公開URL 変換のみ |
 | ✅ | エラーレスポンスの共通化 | `{error:{code,message}}` に統一（`app.onError` / `notFound` / `defaultHook`） |
 | ✅ | 型チェック / CI | `npm run typecheck` + `npm test` を GitHub Actions（PR・push）で実行 |
+| 🟡 | 自動テスト | `vitest` + `@cloudflare/vitest-pool-workers` でルート単位のテスト 25 件。CI で `npm test` を実行 |
 | 🟡 | 環境変数・シークレット整備 | `.dev.vars.example` 提供済み |
 | ✅ | ユーザー認証（Supabase Auth / JWT） | `requireAuth` ミドルウェアで `getUser` 検証、`users/me/*` に適用 |
 | 🔴 | R2 アセットのアップロード / 管理 | 現状は参照URL生成のみ |
 | 🔴 | Cloudflare Workers 本番デプロイ | 未確認 |
-| 🟡 | 自動テスト | `vitest` + `@cloudflare/vitest-pool-workers` でルート単位のテスト 25 件。CI で `npm test` を実行 |
+
+## テストカバレッジ
+
+`vitest` + `@cloudflare/vitest-pool-workers` により、本番と同じ workerd ランタイム上で実行する（`npm test`）。
+Supabase への通信はモックするため、CI にシークレットの設定は不要。
+
+| テストファイル | 対象 | 主な検証内容 |
+| :-- | :-- | :-- |
+| `test/health.test.ts` | `/api/health` | 200 とヘルス情報 |
+| `test/buildings.test.ts` | `/api/v1/buildings` | `marker_count` 集計、500時に内部エラー文言が漏れないこと |
+| `test/spots.test.ts` | `/api/v1/spots/{marker_id}` | R2公開URL変換、埋め込み建物の配列正規化、該当なし |
+| `test/events.test.ts` | `/api/v1/events` | `upcoming` 絞り込みのクエリ生成 |
+| `test/sensors.test.ts` | `/api/v1/sensors/{sensor_id}/readings` | デバイス認証401、存在しないセンサ404、201、`recorded_at` 既定値 |
+| `test/users.test.ts` | `/api/v1/users/me/visits` | `requireAuth` の401系、認証通過後の 200 / 201 / 400 |
+| `test/errors.test.ts` | 全ルート共通 | `{error:{code,message}}` 形式の固定（404 / バリデーション400） |
+
+未カバー:
+
+- 訪問記録の実データ検証（`user_visits` のDB接続後に対応）
+- `/openapi.json` のスキーマ回帰テスト
+
+規約は [AGENTS.md の「テスト（test/）」](../AGENTS.md) を参照。
 
 ## アーキテクチャ（データフロー）
 
