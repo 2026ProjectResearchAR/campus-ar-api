@@ -5,6 +5,8 @@
     "dev": "wrangler dev",
     "pretypecheck": "npm run cf-typegen",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
@@ -20,9 +22,11 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
     "dotenv": "^17.4.2",
     "supabase": "^2.110.0-beta.18",
     "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
     "wrangler": "^4.4.0"
   }
 }
