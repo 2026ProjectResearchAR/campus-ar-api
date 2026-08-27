@@ -25,11 +25,13 @@ Campus AR API は、キャンパス内ARアプリケーション（`campus-ar-cl
 npm install          # 依存パッケージのインストール
 npm run dev          # ローカル開発サーバー起動 (wrangler dev)
 npm run typecheck    # 型チェック (cf-typegen → tsc --noEmit)
+npm test             # テスト実行 (vitest run)
+npm run test:watch   # テストのウォッチ実行
 npm run deploy       # Cloudflare へデプロイ (wrangler deploy --minify)
 npm run cf-typegen   # Cloudflare Bindings の型定義を生成
 ```
 
-**変更をコミットする前に `npm run typecheck` を通すこと。** `main` / `develop` 向けのPR・pushでは GitHub Actions（`.github/workflows/ci.yaml`）が同じコマンドを実行する。`worker-configuration.d.ts` は `cf-typegen` の生成物なのでコミットしない（`.gitignore` 済み）。
+**変更をコミットする前に `npm run typecheck` と `npm test` を通すこと。** `main` / `develop` 向けのPR・pushでは GitHub Actions（`.github/workflows/ci.yaml`）が同じコマンドを実行する。`worker-configuration.d.ts` は `cf-typegen` の生成物なのでコミットしない（`.gitignore` 済み）。
 
 Prisma 関連:
 
@@ -58,8 +60,11 @@ src/
 prisma/
   schema.prisma     # DBスキーマ定義（モデル）
   migrations/       # マイグレーションSQL
+test/               # ルート単位のテスト（1ルート1ファイル）
+  helpers.ts        # ダミー環境変数と outbound fetch のモック
 docs/               # 要件・アーキテクチャ・API仕様のドキュメント
 wrangler.jsonc      # Cloudflare Workers の設定
+vitest.config.ts    # テスト設定（workerd 上で実行）
 prisma.config.ts    # Prisma の設定（datasource URL は環境変数から取得）
 ```
 
@@ -84,6 +89,18 @@ prisma.config.ts    # Prisma の設定（datasource URL は環境変数から取
 - `createRoute` の `responses` には、そのエンドポイントが返しうるエラーを `errorResponse('説明')`（`src/lib/errors.ts`）で宣言する。これが Swagger UI 上のエラー仕様になる。
 - 正常系の `c.json(...)` には**必ず明示的にステータスコードを渡す**（例: `c.json({ data }, 200)`）。省略すると宣言済みステータスの union になり型エラーになる。
 - 詳細な仕様は [docs/specifications.md](docs/specifications.md) の「共通のエラーレスポンス」を参照。
+
+### テスト（test/）
+
+- テストは [Vitest](https://vitest.dev/) + [`@cloudflare/vitest-pool-workers`](https://developers.cloudflare.com/workers/testing/vitest-integration/) で、本番と同じ **workerd ランタイム上**で実行する。設定は `vitest.config.ts`（`wrangler.jsonc` を読み込むため compatibility_date 等が本番と揃う）。
+- 1ルート = 1テストファイル（`test/<リソース名>.test.ts`）。共通のエラーレスポンス形式は `test/errors.test.ts` で固定する。
+- リクエストは `app.request(path, init, TEST_ENV)` で送る。環境変数は `test/helpers.ts` の `TEST_ENV` を第3引数で明示的に渡し、`.dev.vars` に依存しない（CIでも動くこと）。
+- Supabase への通信は `stubFetch()`（`test/helpers.ts`）でモックする。実際の Supabase / R2 には接続しない。
+  - `.single()` はオブジェクト、`.maybeSingle()` と通常の `select()` は**配列**を返すこと（postgrest-js の仕様）。
+  - エラー系は `postgrestError(message, status)` を使う。
+  - 戻り値の `CapturedRequest[]` で、生成されたクエリ文字列や `apikey` ヘッダ（anon / service role の使い分け）を検証できる。
+- `vi.stubGlobal` を使うため、各 `describe` に `afterEach(() => vi.unstubAllGlobals())` を置く。
+- 検証の観点は「ステータスコード」「レスポンスのJSON形状」「Supabaseへ送られたクエリ」の3点を基本とする。内部のエラー文言がクライアントへ漏れていないことも確認する。
 
 ### 命名規約（DB / API）
 
