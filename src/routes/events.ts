@@ -1,10 +1,11 @@
-import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
 
-import type { Bindings } from '../lib/bindings'
+import { createApp } from '../lib/app'
+import { errorResponse } from '../lib/errors'
 import { getSupabase } from '../lib/supabase'
 
-const app = new OpenAPIHono<{ Bindings: Bindings }>()
+const app = createApp()
 
 // イベント1件のレスポンススキーマ（JSONキーは snake_case）
 const EventSchema = z.object({
@@ -45,6 +46,8 @@ const route = createRoute({
       },
       description: 'Get list of events',
     },
+    400: errorResponse('リクエストの内容が不正です'),
+    500: errorResponse('イベント一覧の取得に失敗しました'),
   },
 })
 
@@ -68,7 +71,7 @@ app.openapi(route, async (c) => {
     throw new HTTPException(500, { message: 'イベント一覧の取得に失敗しました' })
   }
 
-  return c.json({ data: data ?? [] })
+  return c.json({ data: data ?? [] }, 200)
 })
 
 export default app

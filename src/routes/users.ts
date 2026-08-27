@@ -1,6 +1,9 @@
-import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { createRoute, z } from '@hono/zod-openapi'
 
-const app = new OpenAPIHono()
+import { createApp } from '../lib/app'
+import { errorResponse } from '../lib/errors'
+
+const app = createApp()
 
 // 訪問記録（1件）のスキーマ
 const VisitSchema = z.object({
@@ -38,6 +41,7 @@ const createVisitRoute = createRoute({
       },
       description: 'Visit recorded',
     },
+    400: errorResponse('リクエストの内容が不正です'),
   },
 })
 
@@ -76,15 +80,18 @@ app.openapi(createVisitRoute, (c) => {
 })
 
 app.openapi(listVisitsRoute, (c) => {
-  return c.json({
-    data: [
-      {
-        id: "uuid",
-        spot_id: "uuid",
-        visited_at: new Date().toISOString(),
-      },
-    ],
-  })
+  return c.json(
+    {
+      data: [
+        {
+          id: "uuid",
+          spot_id: "uuid",
+          visited_at: new Date().toISOString(),
+        },
+      ],
+    },
+    200
+  )
 })
 
 export default app

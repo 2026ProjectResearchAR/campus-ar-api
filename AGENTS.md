@@ -24,9 +24,12 @@ Campus AR API は、キャンパス内ARアプリケーション（`campus-ar-cl
 ```bash
 npm install          # 依存パッケージのインストール
 npm run dev          # ローカル開発サーバー起動 (wrangler dev)
+npm run typecheck    # 型チェック (cf-typegen → tsc --noEmit)
 npm run deploy       # Cloudflare へデプロイ (wrangler deploy --minify)
 npm run cf-typegen   # Cloudflare Bindings の型定義を生成
 ```
+
+**変更をコミットする前に `npm run typecheck` を通すこと。** `main` / `develop` 向けのPR・pushでは GitHub Actions（`.github/workflows/ci.yaml`）が同じコマンドを実行する。`worker-configuration.d.ts` は `cf-typegen` の生成物なのでコミットしない（`.gitignore` 済み）。
 
 Prisma 関連:
 
@@ -73,6 +76,14 @@ prisma.config.ts    # Prisma の設定（datasource URL は環境変数から取
 - パスは `/api/health`（システム系）と `/api/v1/...`（バージョン付きAPI）を使い分ける既存慣習に従う。
 
 現状のハンドラはモックデータ（`data: [...]`）を返す段階です。DB接続を実装する際は Prisma Client を用い、レスポンス形状は既存のZodスキーマを崩さないようにしてください。
+
+### エラーレスポンス
+
+- ルートファイルは `new OpenAPIHono()` を直接使わず、`createApp()`（`src/lib/app.ts`）で生成する。バリデーション失敗時のレスポンス形式を全ルートで揃えるための `defaultHook` が入っている。
+- エラーは `throw new HTTPException(status, { message })` で投げる。`src/index.ts` の `app.onError` が `{ error: { code, message } }` 形式に変換するため、ハンドラ内でエラーレスポンスを組み立てない。
+- `createRoute` の `responses` には、そのエンドポイントが返しうるエラーを `errorResponse('説明')`（`src/lib/errors.ts`）で宣言する。これが Swagger UI 上のエラー仕様になる。
+- 正常系の `c.json(...)` には**必ず明示的にステータスコードを渡す**（例: `c.json({ data }, 200)`）。省略すると宣言済みステータスの union になり型エラーになる。
+- 詳細な仕様は [docs/specifications.md](docs/specifications.md) の「共通のエラーレスポンス」を参照。
 
 ### 命名規約（DB / API）
 
