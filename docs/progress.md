@@ -18,12 +18,11 @@
 ```mermaid
 pie showData
     title 実装状況（エンドポイント数）
-    "完了 (実データ)" : 4
+    "完了 (実データ)" : 5
     "部分実装 (モック)" : 2
-    "未着手" : 1
 ```
 
-- エンドポイント: **6 実装 / 1 未着手**（うち 4 が実データ接続、2 がモック返却）
+- エンドポイント: **7 実装**（うち 5 が実データ接続、2 がモック返却）
 - DBスキーマ: **7 モデル定義済み**（マイグレーション 2 件適用）
 - 主要な残タスク: 訪問記録のDB接続（認証は実装済み）、イベントAPI、R2アセット管理
 
@@ -35,9 +34,9 @@ pie showData
 | ✅ | GET | `/api/v1/buildings` | 建物一覧（ARマーカー数集計） | Supabase (PostgREST) |
 | ✅ | GET | `/api/v1/spots/{marker_id}` | スポット詳細＋ARアセット | Supabase (PostgREST) |
 | ✅ | POST | `/api/v1/sensors/{sensor_id}/readings` | センサ計測値の登録（デバイス認証付き） | Supabase (service role) |
-| 🟡 | GET | `/api/v1/users/me/visits` | 訪問履歴取得（JWT認証必須） | **モック** |
-| 🟡 | POST | `/api/v1/users/me/visits` | 訪問記録の作成（JWT認証必須） | **モック** |
-| 🔴 | - | `/api/v1/events`（想定） | イベント情報配信 | 未定義 |
+| 🟡 | GET | `/api/v1/users/me/visits` | 訪問履歴取得 | **モック** |
+| 🟡 | POST | `/api/v1/users/me/visits` | 訪問記録の作成 | **モック** |
+| ✅ | GET | `/api/v1/events` | イベント一覧（`upcoming` 絞り込み対応） | Supabase (PostgREST) |
 
 ## DBスキーマ（Prisma / PostgreSQL）
 
@@ -49,7 +48,7 @@ pie showData
 | ✅ | `Sensor` / `sensors` | IoTデバイスメタ情報 | sensors |
 | ✅ | `SensorReading` / `sensor_readings` | センサ時系列計測値 | sensors |
 | 🟡 | `UserVisit` / `user_visits` | ユーザー訪問履歴 | **API未接続（モック）** |
-| 🔴 | `Event` / `events` | イベント情報 | **API未実装** |
+| ✅ | `Event` / `events` | イベント情報 | events |
 
 マイグレーション:
 - `20260709111431_init` — 初期テーブル
@@ -82,8 +81,8 @@ flowchart LR
     Supabase[("Supabase<br/>PostgreSQL")]
     R2[("Cloudflare R2<br/>.glb アセット")]
 
-    Client -->|"GET buildings / spots ✅"| API
-    Client -->|"visits (JWT認証✅ / DB未接続) 🟡"| API
+    Client -->|"GET buildings / spots / events ✅"| API
+    Client -.->|"visits (認証・DB未接続) 🟡"| API
     IoT -->|"POST readings ✅"| API
     API -->|"読み取り (anon) ✅"| Supabase
     API -->|"書き込み (service role) ✅"| Supabase
@@ -96,5 +95,8 @@ flowchart LR
 1. ~~**ユーザー認証の実装**~~ ✅ 完了 — Supabase Auth の JWT を `requireAuth` で検証し、`users/me/*` を認証必須化
 2. **訪問記録のDB接続** — `user_visits` テーブルへ実データで読み書き（認証済みの `userId` を利用。現状モック）
 3. **イベントAPIの実装** — `events` テーブルを配信するエンドポイント追加
+1. **ユーザー認証の実装** — Supabase Auth の JWT を検証し、`users/me/visits` を認証必須化する
+2. **訪問記録のDB接続** — `user_visits` テーブルへ実データで読み書き（現状モック）
+3. ~~**イベントAPIの実装**~~ ✅ 完了 — `GET /api/v1/events`（`events` テーブル配信、`upcoming` 絞り込み対応）
 4. **R2アセット管理** — 3Dモデルのアップロード・削除フローの整備
 5. **デプロイ / CI** — Cloudflare Workers への本番デプロイ手順確立と自動テスト整備

@@ -7,6 +7,7 @@ import buildingsApp from './routes/buildings'
 import spotsApp from './routes/spots'
 import sensorsApp from './routes/sensors'
 import usersApp from './routes/users'
+import eventsApp from './routes/events'
 
 const app = new OpenAPIHono<{ Bindings: Bindings }>()
 
@@ -40,5 +41,6 @@ app.route('/', buildingsApp)
 app.route('/', spotsApp)
 app.route('/', sensorsApp)
 app.route('/', usersApp)
+app.route('/', eventsApp)
 
 export default app
