@@ -58,3 +58,79 @@ describe('GET /api/v1/buildings', () => {
     expect(JSON.stringify(body)).not.toContain('relation does not exist')
   })
 })
+
+type BuildingSpotsBody = {
+  data: { id: string; name: string; description: string | null; marker_id: string }[]
+}
+
+describe('GET /api/v1/buildings/{building_id}/spots', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('建物に紐づくスポット一覧を返す', async () => {
+    const calls = stubFetch(() =>
+      // maybeSingle() は配列を返す（postgrest-js の仕様）。
+      jsonResponse([
+        {
+          id: 'b1',
+          spots: [
+            { id: 's1', name: '図書館前広場', description: 'モニュメント', marker_id: 'm1' },
+            { id: 's2', name: '図書館入口', description: null, marker_id: 'm2' },
+          ],
+        },
+      ])
+    )
+
+    const res = await app.request('/api/v1/buildings/b1/spots', {}, TEST_ENV)
+
+    expect(res.status).toBe(200)
+    const body = await readJson<BuildingSpotsBody>(res)
+    expect(body.data).toEqual([
+      { id: 's1', name: '図書館前広場', description: 'モニュメント', marker_id: 'm1' },
+      { id: 's2', name: '図書館入口', description: null, marker_id: 'm2' },
+    ])
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url.pathname).toBe('/rest/v1/buildings')
+    expect(calls[0].url.searchParams.get('select')).toBe(
+      'id,spots(id,name,description,marker_id)'
+    )
+    expect(calls[0].url.searchParams.get('id')).toBe('eq.b1')
+    expect(calls[0].url.searchParams.get('spots.order')).toBe('name.asc')
+    expect(calls[0].headers.get('apikey')).toBe(TEST_ENV.SUPABASE_ANON_KEY)
+  })
+
+  it('スポットが未登録の建物は空配列を返す', async () => {
+    stubFetch(() => jsonResponse([{ id: 'b2', spots: [] }]))
+
+    const res = await app.request('/api/v1/buildings/b2/spots', {}, TEST_ENV)
+
+    expect(res.status).toBe(200)
+    const body = await readJson<BuildingSpotsBody>(res)
+    expect(body.data).toEqual([])
+  })
+
+  it('建物が存在しなければ 404 / not_found を返す', async () => {
+    stubFetch(() => jsonResponse([]))
+
+    const res = await app.request('/api/v1/buildings/unknown/spots', {}, TEST_ENV)
+
+    expect(res.status).toBe(404)
+    const body = await readJson<ErrorResponseBody>(res)
+    expect(body.error.code).toBe('not_found')
+    expect(body.error.message).toBe('指定された建物が見つかりません')
+  })
+
+  it('Supabase がエラーを返したら 500 / internal_server_error を返す', async () => {
+    stubFetch(() => postgrestError('invalid input syntax for type uuid'))
+
+    const res = await app.request('/api/v1/buildings/b1/spots', {}, TEST_ENV)
+
+    expect(res.status).toBe(500)
+    const body = await readJson<ErrorResponseBody>(res)
+    expect(body.error.code).toBe('internal_server_error')
+    expect(body.error.message).toBe('スポット一覧の取得に失敗しました')
+    expect(JSON.stringify(body)).not.toContain('invalid input syntax')
+  })
+})
