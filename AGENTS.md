@@ -54,7 +54,7 @@ src/
   index.ts          # エントリポイント。OpenAPIHono の初期化とルート登録、Swagger UI 設定
   routes/           # エンドポイントごとのルート定義（1ファイル1リソース）
     health.ts       # GET /api/health
-    buildings.ts    # GET /api/v1/buildings
+    buildings.ts    # GET /api/v1/buildings, GET /api/v1/buildings/{building_id}/spots
     spots.ts        # GET /api/v1/spots/{marker_id}
     users.ts        # GET /api/v1/users/me/visits
 prisma/
