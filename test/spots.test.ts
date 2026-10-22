@@ -25,6 +25,54 @@ describe('GET /api/v1/spots/{marker_id}', () => {
     vi.unstubAllGlobals()
   })
 
+  it.each(['@marker_fuzimotolab', '%40marker_fuzimotolab', 'marker@fuzimotolab'])(
+    '@ を含むマーカーID %s はDBを検索せずARクライアントへリダイレクトする',
+    async (markerId) => {
+      const calls = stubFetch(() => jsonResponse([]))
+
+      const res = await app.request(`/api/v1/spots/${markerId}?source=qr`, {}, TEST_ENV)
+
+      expect(res.status).toBe(302)
+      expect(res.headers.get('Location')).toBe('https://ar-cloud.chikai400up.workers.dev/')
+      expect(await res.text()).toBe('')
+      expect(calls).toHaveLength(0)
+    }
+  )
+
+  it('クエリだけに @ が含まれる場合は通常のスポット検索を行う', async () => {
+    const calls = stubFetch(() => jsonResponse([]))
+
+    const res = await app.request('/api/v1/spots/marker-001?source=@qr', {}, TEST_ENV)
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Location')).toBeNull()
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url.searchParams.get('marker_id')).toBe('eq.marker-001')
+  })
+
+  it('OpenAPIにリダイレクト条件と302の転送先ヘッダーが記載される', async () => {
+    const res = await app.request('/openapi.json', {}, TEST_ENV)
+    const body = await readJson<{
+      paths: Record<string, {
+        get: {
+          description: string
+          responses: Record<string, {
+            headers?: Record<string, { schema: { type: string; example: string } }>
+          }>
+        }
+      }>
+    }>(res)
+    const route = body.paths['/api/v1/spots/{marker_id}'].get
+
+    expect(res.status).toBe(200)
+    expect(route.description).toContain('@')
+    expect(route.responses['302'].headers?.Location.schema).toMatchObject({
+      type: 'string',
+      example: 'https://ar-cloud.chikai400up.workers.dev/',
+    })
+    expect(route.responses['200']).toBeDefined()
+  })
+
   it('スポット詳細と、公開URLに変換したARアセットを返す', async () => {
     const calls = stubFetch(() =>
       jsonResponse([
