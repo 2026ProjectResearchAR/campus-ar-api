@@ -75,6 +75,7 @@
 
 *   **GET `/api/v1/spots/:marker_id`**
     *   概要: スキャンしたARマーカーIDに紐づく詳細情報とARアセットを取得する。マーカーIDで一意に探索する設計のため、緯度・経度は返さない（要件: 厳密な緯度・経度の照合は不要）。
+    *   リダイレクト: `marker_id` に `@` が含まれる場合（URLエンコードされた `%40` も対象）、DBを検索せず `302 Found` を返す。`Location` ヘッダーは `https://ar-cloud.chikai400up.workers.dev/`、レスポンスボディは空。マーカーIDやクエリパラメータは転送しない。例: `/api/v1/spots/@marker_fuzimotolab`。クエリパラメータ内だけの `@` は対象外。
     *   レスポンス:
         ```json
         {

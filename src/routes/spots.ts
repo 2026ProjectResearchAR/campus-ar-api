@@ -6,6 +6,7 @@ import { errorResponse } from '../lib/errors'
 import { getSupabase, toPublicAssetUrl } from '../lib/supabase'
 
 const app = createApp()
+const AR_CLIENT_URL = 'https://ar-cloud.chikai400up.workers.dev/'
 
 const ARAssetSchema = z.object({
   type: z.string(),
@@ -30,7 +31,7 @@ const route = createRoute({
   method: 'get',
   path: '/api/v1/spots/{marker_id}',
   summary: 'スポット詳細情報取得',
-  description: 'スキャンしたARマーカーIDに紐づく詳細情報とARアセットを取得する。',
+  description: 'スキャンしたARマーカーIDに紐づく詳細情報とARアセットを取得する。マーカーIDに @（%40 を含む）が含まれる場合は、DBを検索せずARクライアントのトップページへ302リダイレクトする。マーカーIDやクエリパラメータは転送しない。',
   tags: ['Spots'],
   request: {
     params: z.object({
@@ -39,6 +40,7 @@ const route = createRoute({
           name: 'marker_id',
           in: 'path',
         },
+        description: '@ を含む場合はARクライアントへリダイレクトする。例: @marker_fuzimotolab',
         example: 'uuid',
       }),
     }),
@@ -54,6 +56,15 @@ const route = createRoute({
       },
       description: 'Get spots by marker ID',
     },
+    302: {
+      description: '@ を含むマーカーIDの場合、ARクライアントのトップページへリダイレクトする（レスポンスボディなし）。',
+      headers: z.object({
+        Location: z.string().url().openapi({
+          description: 'リダイレクト先のURL',
+          example: AR_CLIENT_URL,
+        }),
+      }),
+    },
     400: errorResponse('リクエストの内容が不正です'),
     500: errorResponse('スポット情報の取得に失敗しました'),
   },
@@ -61,6 +72,11 @@ const route = createRoute({
 
 app.openapi(route, async (c) => {
   const { marker_id } = c.req.valid('param')
+
+  if (marker_id.includes('@')) {
+    return c.redirect(AR_CLIENT_URL, 302)
+  }
+
   const supabase = getSupabase(c.env)
 
   // marker_id は一意。紐づく建物とARアセットを一括で取得する。
