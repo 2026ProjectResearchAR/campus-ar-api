@@ -80,6 +80,27 @@ model SensorReading {
   @@map("sensor_readings")
 }
 
+enum CrowdStatus {
+  crowded
+  moderate
+  vacant
+
+  @@map("crowd_status")
+}
+
+model EnvironmentReading {
+  id         String      @id @default(uuid())
+  locationId String      @map("location_id")
+  co2Ppm     Float       @map("co2_ppm")
+  occupancy  Int
+  status     CrowdStatus
+  recordedAt DateTime    @map("recorded_at")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@index([locationId, recordedAt])
+  @@map("environment_readings")
+}
+
 model UserVisit {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")

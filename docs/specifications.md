@@ -138,6 +138,40 @@
     *   エラー: `401`（認証トークンが無い／無効）。
 
 ### 2.3. センサ (IoT)
+*   **POST `/api/v1/sensors/readings`**
+    *   概要: ハードウェアから1分ごとに送信される場所別のCO2濃度・周辺人数・混雑状態を保存する。計測時刻にはサーバー受信時刻を採用する。
+    *   認証: 不要。`Content-Type: application/json` で送信する。
+    *   リクエストボディ:
+        ```json
+        {
+          "location_id": "building_1",
+          "co2_ppm": 850,
+          "occupancy": 7,
+          "status": "moderate"
+        }
+        ```
+        * `co2_ppm`: 0以上の数値
+        * `occupancy`: 0〜2147483647の整数（DBのINTEGER範囲）
+        * `status`: `crowded` / `moderate` / `vacant` のいずれか
+        * `location_id`: 空でない設置場所識別子。現時点ではハード班の識別子を保存し、`buildings.id` との外部キー連携は行わない。
+    *   保存: POSTごとに履歴を1件追加する。送信時刻が含まれないため、再送も別レコードになる。1分間隔は送信側の仕様であり、API側では間隔を制限しない。
+    *   レスポンス: `201 Created`
+        ```json
+        {
+          "data": {
+            "id": "uuid",
+            "location_id": "building_1",
+            "co2_ppm": 850,
+            "occupancy": 7,
+            "status": "moderate",
+            "recorded_at": "2026-10-22T00:00:00.000Z",
+            "created_at": "2026-10-22T00:00:00.000Z"
+          }
+        }
+        ```
+    *   エラー: `400`（入力値不正）, `500`（保存失敗）。
+    *   利用開始前に `20261022000000_add_environment_readings` マイグレーションの適用が必要。新規テーブルはRLS有効で、APIのservice role経由でアクセスする。
+
 *   **POST `/api/v1/sensors/:sensor_id/readings`**
     *   概要: 学内に設置したIoTデバイスから送信されるセンサ計測値を保存する。
     *   認証: `Authorization: Bearer <SENSOR_INGEST_KEY>`（デバイス用の事前共有キー）。
@@ -192,6 +226,7 @@
 *   **`user_visits`**: `id`, `user_id`, `spot_id`, `visited_at`
 *   **`sensors`**: `id`, `building_id` (外部キー, NULL許容), `name`, `type` (例: `people_counter` / `co2` / `temperature`), `unit`, `created_at` (IoTデバイスのメタ情報)
 *   **`sensor_readings`**: `id`, `sensor_id` (外部キー), `value`, `recorded_at` (デバイス側計測時刻), `created_at` (サーバ受信時刻) — 混雑需要予測の元となる時系列計測データ。`(sensor_id, recorded_at)` に複合インデックス
+*   **`environment_readings`**: `id`, `location_id`, `co2_ppm`, `occupancy`, `status`, `recorded_at`, `created_at` — ハードウェアから受信した場所別の環境・混雑時系列データ。`status` は `crowded` / `moderate` / `vacant`。`(location_id, recorded_at)` に複合インデックス
 
 ## 4. 開発・デプロイ手順
 
