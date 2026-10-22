@@ -1,6 +1,6 @@
 # Campus AR API - 進行状況
 
-> 最終更新: 2026-08-27
+> 最終更新: 2026-10-22
 > ブランチ運用: `main`（本番） ← `develop`（開発統合） ← 各作業ブランチ
 
 本ドキュメントは開発の進行状況を一目で把握するためのものです。実装の詳細は各ソース・[`docs/specifications.md`](specifications.md) を参照してください。
@@ -18,13 +18,13 @@
 ```mermaid
 pie showData
     title 実装状況（エンドポイント数）
-    "完了 (実データ)" : 5
+    "完了 (実データ)" : 6
     "部分実装 (モック)" : 2
 ```
 
-- エンドポイント: **7 実装**（うち 5 が実データ接続、2 がモック返却）
-- DBスキーマ: **7 モデル定義済み**（マイグレーション 2 件適用）
-- 自動テスト: **25 件**（7 ファイル / 全エンドポイントを網羅、CI で実行）
+- エンドポイント: **8 実装**（うち 6 が実データ接続、2 がモック返却）
+- DBスキーマ: **8 モデル定義済み**（マイグレーション 3 件を管理）
+- 自動テスト: **46 件**（7 ファイル / 全エンドポイントを網羅、CI で実行）
 - 主要な残タスク: 訪問記録のDB接続（認証は実装済み）、R2アセット管理、本番デプロイ
 
 ## エンドポイント別ステータス
@@ -35,6 +35,7 @@ pie showData
 | ✅ | GET | `/api/v1/buildings` | 建物一覧（ARマーカー数集計） | Supabase (PostgREST) |
 | ✅ | GET | `/api/v1/spots/{marker_id}` | スポット詳細＋ARアセット | Supabase (PostgREST) |
 | ✅ | POST | `/api/v1/sensors/{sensor_id}/readings` | センサ計測値の登録（デバイス認証付き） | Supabase (service role) |
+| 🟡 | POST | `/api/v1/sensors/readings` | 実装・モック通信テスト済み。DBマイグレーション適用待ち | Supabase (service role) |
 | 🟡 | GET | `/api/v1/users/me/visits` | 訪問履歴取得 | **モック** |
 | 🟡 | POST | `/api/v1/users/me/visits` | 訪問記録の作成 | **モック** |
 | ✅ | GET | `/api/v1/events` | イベント一覧（`upcoming` 絞り込み対応） | Supabase (PostgREST) |
@@ -48,12 +49,14 @@ pie showData
 | ✅ | `ArAsset` / `ar_assets` | 3Dモデル等のアセット | spots |
 | ✅ | `Sensor` / `sensors` | IoTデバイスメタ情報 | sensors |
 | ✅ | `SensorReading` / `sensor_readings` | センサ時系列計測値 | sensors |
+| 🟡 | `EnvironmentReading` / `environment_readings` | 場所別のCO2・人数・混雑状態（マイグレーション適用待ち） | sensors |
 | 🟡 | `UserVisit` / `user_visits` | ユーザー訪問履歴 | **API未接続（モック）** |
 | ✅ | `Event` / `events` | イベント情報 | events |
 
 マイグレーション:
 - `20260709111431_init` — 初期テーブル
 - `20260722000000_add_sensors` — `sensors` / `sensor_readings` 追加
+- `20261022000000_add_environment_readings` — `environment_readings` / `crowd_status` 追加（未適用）
 
 ## コンポーネント別ステータス
 
@@ -83,7 +86,7 @@ Supabase への通信はモックするため、CI にシークレットの設�
 | `test/buildings.test.ts` | `/api/v1/buildings` | `marker_count` 集計、500時に内部エラー文言が漏れないこと |
 | `test/spots.test.ts` | `/api/v1/spots/{marker_id}` | R2公開URL変換、埋め込み建物の配列正規化、該当なし |
 | `test/events.test.ts` | `/api/v1/events` | `upcoming` 絞り込みのクエリ生成 |
-| `test/sensors.test.ts` | `/api/v1/sensors/{sensor_id}/readings` | デバイス認証401、存在しないセンサ404、201、`recorded_at` 既定値 |
+| `test/sensors.test.ts` | センサ計測値POST API | デバイス認証、入力検証、DB登録、`recorded_at` 既定値 |
 | `test/users.test.ts` | `/api/v1/users/me/visits` | `requireAuth` の401系、認証通過後の 200 / 201 / 400 |
 | `test/errors.test.ts` | 全ルート共通 | `{error:{code,message}}` 形式の固定（404 / バリデーション400） |
 
