@@ -33,14 +33,13 @@ describe('共通のエラーレスポンス', () => {
 
   it('リクエストボディのバリデーション失敗は 400 / bad_request を返す', async () => {
     const res = await app.request(
-      '/api/v1/sensors/sensor-1/readings',
+      '/api/v1/sensors/readings',
       {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          Authorization: `Bearer ${TEST_ENV.SENSOR_INGEST_KEY}`,
         },
-        body: JSON.stringify({ value: 'not-a-number' }),
+        body: JSON.stringify({ location_id: 'building_1', co2_ppm: 'not-a-number', occupancy: 7, status: 'moderate' }),
       },
       TEST_ENV
     )
