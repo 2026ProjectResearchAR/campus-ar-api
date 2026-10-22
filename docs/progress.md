@@ -18,13 +18,14 @@
 ```mermaid
 pie showData
     title 実装状況（エンドポイント数）
-    "完了 (実データ)" : 6
+    "完了 (実データ)" : 4
+    "実装済み (DB適用待ち)" : 1
     "部分実装 (モック)" : 2
 ```
 
-- エンドポイント: **8 実装**（うち 6 が実データ接続、2 がモック返却）
+- エンドポイント: **7 実装**（4 が実データ接続、1 がDB適用待ち、2 がモック返却）
 - DBスキーマ: **8 モデル定義済み**（マイグレーション 3 件を管理）
-- 自動テスト: **46 件**（7 ファイル / 全エンドポイントを網羅、CI で実行）
+- 自動テスト: **43 件**（7 ファイル / 全エンドポイントを網羅、CI で実行）
 - 主要な残タスク: 訪問記録のDB接続（認証は実装済み）、R2アセット管理、本番デプロイ
 
 ## エンドポイント別ステータス
@@ -34,7 +35,6 @@ pie showData
 | ✅ | GET | `/api/health` | ヘルスチェック | 静的（DB不要） |
 | ✅ | GET | `/api/v1/buildings` | 建物一覧（ARマーカー数集計） | Supabase (PostgREST) |
 | ✅ | GET | `/api/v1/spots/{marker_id}` | スポット詳細＋ARアセット | Supabase (PostgREST) |
-| ✅ | POST | `/api/v1/sensors/{sensor_id}/readings` | センサ計測値の登録（デバイス認証付き） | Supabase (service role) |
 | 🟡 | POST | `/api/v1/sensors/readings` | 実装・モック通信テスト済み。DBマイグレーション適用待ち | Supabase (service role) |
 | 🟡 | GET | `/api/v1/users/me/visits` | 訪問履歴取得 | **モック** |
 | 🟡 | POST | `/api/v1/users/me/visits` | 訪問記録の作成 | **モック** |
@@ -47,8 +47,8 @@ pie showData
 | ✅ | `Building` / `buildings` | 建物・エリア | buildings, spots |
 | ✅ | `Spot` / `spots` | ARマーカー地点 | spots, buildings |
 | ✅ | `ArAsset` / `ar_assets` | 3Dモデル等のアセット | spots |
-| ✅ | `Sensor` / `sensors` | IoTデバイスメタ情報 | sensors |
-| ✅ | `SensorReading` / `sensor_readings` | センサ時系列計測値 | sensors |
+| ✅ | `Sensor` / `sensors` | 旧IoTデバイスメタ情報（既存データを保持） | 旧API削除済み |
+| ✅ | `SensorReading` / `sensor_readings` | 旧センサ時系列計測値（既存データを保持） | 旧API削除済み |
 | 🟡 | `EnvironmentReading` / `environment_readings` | 場所別のCO2・人数・混雑状態（マイグレーション適用待ち） | sensors |
 | 🟡 | `UserVisit` / `user_visits` | ユーザー訪問履歴 | **API未接続（モック）** |
 | ✅ | `Event` / `events` | イベント情報 | events |
@@ -65,11 +65,11 @@ pie showData
 | ✅ | Hono + OpenAPI 基盤 | Swagger UI (`/doc`), OpenAPI JSON (`/openapi.json`) |
 | ✅ | Supabase 読み取り接続 | `supabase-js`（anon key, PostgREST 経由） |
 | ✅ | Supabase 書き込み接続 | service role key（RLS バイパス, センサ登録） |
-| ✅ | デバイス認証 | `SENSOR_INGEST_KEY`（事前共有キー） |
+| ✅ | センサ受信API | bodyの`location_id`で場所を指定。認証不要 |
 | ✅ | R2 公開URL生成 | `storage_path` → 公開URL 変換のみ |
 | ✅ | エラーレスポンスの共通化 | `{error:{code,message}}` に統一（`app.onError` / `notFound` / `defaultHook`） |
 | ✅ | 型チェック / CI | `npm run typecheck` + `npm test` を GitHub Actions（PR・push）で実行 |
-| 🟡 | 自動テスト | `vitest` + `@cloudflare/vitest-pool-workers` でルート単位のテスト 25 件。CI で `npm test` を実行 |
+| 🟡 | 自動テスト | `vitest` + `@cloudflare/vitest-pool-workers` でルート単位のテスト 43 件。CI で `npm test` を実行 |
 | 🟡 | 環境変数・シークレット整備 | `.dev.vars.example` 提供済み |
 | ✅ | ユーザー認証（Supabase Auth / JWT） | `requireAuth` ミドルウェアで `getUser` 検証、`users/me/*` に適用 |
 | 🔴 | R2 アセットのアップロード / 管理 | 現状は参照URL生成のみ |
@@ -86,7 +86,7 @@ Supabase への通信はモックするため、CI にシークレットの設�
 | `test/buildings.test.ts` | `/api/v1/buildings` | `marker_count` 集計、500時に内部エラー文言が漏れないこと |
 | `test/spots.test.ts` | `/api/v1/spots/{marker_id}` | R2公開URL変換、埋め込み建物の配列正規化、該当なし |
 | `test/events.test.ts` | `/api/v1/events` | `upcoming` 絞り込みのクエリ生成 |
-| `test/sensors.test.ts` | センサ計測値POST API | デバイス認証、入力検証、DB登録、`recorded_at` 既定値 |
+| `test/sensors.test.ts` | センサ計測値POST API | 入力検証、DB登録、受信時刻、旧URLの404、OpenAPI公開URL |
 | `test/users.test.ts` | `/api/v1/users/me/visits` | `requireAuth` の401系、認証通過後の 200 / 201 / 400 |
 | `test/errors.test.ts` | 全ルート共通 | `{error:{code,message}}` 形式の固定（404 / バリデーション400） |
 
@@ -129,4 +129,4 @@ flowchart LR
 7. 🟡 **自動テスト** — ルート単位のテスト（`vitest` + `@cloudflare/vitest-pool-workers`）を整備し CI に追加済み。
    未カバー: 訪問記録のDB接続後の実データ検証、`/openapi.json` のスキーマ回帰テスト
 8. **本番デプロイ** — Cloudflare Workers へのデプロイ手順確立とシークレット設定
-9. **センサ計測値の取得API** — `GET /api/v1/sensors/{sensor_id}/readings`（現状は書き込み専用）
+9. **センサ計測値の取得API** — 場所別の取得仕様は未定（現状は書き込み専用）

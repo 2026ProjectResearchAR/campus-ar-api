@@ -8,7 +8,6 @@ export const TEST_ENV: Bindings = {
   SUPABASE_URL: 'https://test.supabase.co',
   SUPABASE_ANON_KEY: 'test-anon-key',
   SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
-  SENSOR_INGEST_KEY: 'test-ingest-key',
   R2_PUBLIC_BASE_URL: 'https://assets.example.com',
 }
 

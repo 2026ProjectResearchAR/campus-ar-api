@@ -9,8 +9,5 @@ SUPABASE_ANON_KEY="your-anon-key"
 # センサ計測値の書き込み（RLS バイパス）用。クライアントには公開しない。
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 
-# IoTデバイスがセンサデータ送信時に提示する事前共有キー（Authorization: Bearer <key>）
-SENSOR_INGEST_KEY="your-device-ingest-key"
-
 # Cloudflare R2 の公開バケットのベースURL（末尾スラッシュ不要）
 R2_PUBLIC_BASE_URL="https://pub-xxxxxxxx.r2.dev"
