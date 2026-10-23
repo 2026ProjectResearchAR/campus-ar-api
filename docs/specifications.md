@@ -170,7 +170,7 @@
         }
         ```
     *   エラー: `400`（入力値不正）, `500`（保存失敗）。
-    *   利用開始前に `20261022000000_add_environment_readings` マイグレーションの適用が必要。新規テーブルはRLS有効で、APIのservice role経由でアクセスする。
+    *   新しい環境で利用する場合は `20261022000000_add_environment_readings` マイグレーションの適用が必要。設定済みSupabaseには2026-10-23に適用済み。新規テーブルはRLS有効で、APIのservice role経由でアクセスする。
 
 ### 2.4. イベント
 *   **GET `/api/v1/events`**

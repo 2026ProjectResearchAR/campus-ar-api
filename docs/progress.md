@@ -1,6 +1,6 @@
 # Campus AR API - 進行状況
 
-> 最終更新: 2026-10-22
+> 最終更新: 2026-10-23
 > ブランチ運用: `main`（本番） ← `develop`（開発統合） ← 各作業ブランチ
 
 本ドキュメントは開発の進行状況を一目で把握するためのものです。実装の詳細は各ソース・[`docs/specifications.md`](specifications.md) を参照してください。
@@ -19,11 +19,11 @@
 pie showData
     title 実装状況（エンドポイント数）
     "完了 (実データ)" : 4
-    "実装済み (DB適用待ち)" : 1
+    "実装済み (実DB保存確認待ち)" : 1
     "部分実装 (モック)" : 2
 ```
 
-- エンドポイント: **7 実装**（4 が実データ接続、1 がDB適用待ち、2 がモック返却）
+- エンドポイント: **7 実装**（4 が実データ接続、1 が実DB保存確認待ち、2 がモック返却）
 - DBスキーマ: **8 モデル定義済み**（マイグレーション 3 件を管理）
 - 自動テスト: **43 件**（7 ファイル / 全エンドポイントを網羅、CI で実行）
 - 主要な残タスク: 訪問記録のDB接続（認証は実装済み）、R2アセット管理、本番デプロイ
@@ -35,7 +35,7 @@ pie showData
 | ✅ | GET | `/api/health` | ヘルスチェック | 静的（DB不要） |
 | ✅ | GET | `/api/v1/buildings` | 建物一覧（ARマーカー数集計） | Supabase (PostgREST) |
 | ✅ | GET | `/api/v1/spots/{marker_id}` | スポット詳細＋ARアセット | Supabase (PostgREST) |
-| 🟡 | POST | `/api/v1/sensors/readings` | 実装・モック通信テスト済み。DBマイグレーション適用待ち | Supabase (service role) |
+| 🟡 | POST | `/api/v1/sensors/readings` | 実装・モック通信テスト済み。DB作成済み、実DBへのPOST保存確認待ち | Supabase (service role) |
 | 🟡 | GET | `/api/v1/users/me/visits` | 訪問履歴取得 | **モック** |
 | 🟡 | POST | `/api/v1/users/me/visits` | 訪問記録の作成 | **モック** |
 | ✅ | GET | `/api/v1/events` | イベント一覧（`upcoming` 絞り込み対応） | Supabase (PostgREST) |
@@ -49,14 +49,16 @@ pie showData
 | ✅ | `ArAsset` / `ar_assets` | 3Dモデル等のアセット | spots |
 | ✅ | `Sensor` / `sensors` | 旧IoTデバイスメタ情報（既存データを保持） | 旧API削除済み |
 | ✅ | `SensorReading` / `sensor_readings` | 旧センサ時系列計測値（既存データを保持） | 旧API削除済み |
-| 🟡 | `EnvironmentReading` / `environment_readings` | 場所別のCO2・人数・混雑状態（マイグレーション適用待ち） | sensors |
+| ✅ | `EnvironmentReading` / `environment_readings` | 場所別のCO2・人数・混雑状態（テーブル作成済み、RLS有効） | sensors（実DB保存確認待ち） |
 | 🟡 | `UserVisit` / `user_visits` | ユーザー訪問履歴 | **API未接続（モック）** |
 | ✅ | `Event` / `events` | イベント情報 | events |
 
 マイグレーション:
 - `20260709111431_init` — 初期テーブル
 - `20260722000000_add_sensors` — `sensors` / `sensor_readings` 追加
-- `20261022000000_add_environment_readings` — `environment_readings` / `crowd_status` 追加（未適用）
+- `20261022000000_add_environment_readings` — `environment_readings` / `crowd_status` 追加
+
+2026-10-23: 設定済みSupabaseに `prisma migrate deploy` で未適用の2件（`add_sensors` / `add_environment_readings`）を適用。`prisma migrate status` で全3件が適用済みであることを確認した。API経由の実DB保存確認は未実施。
 
 ## コンポーネント別ステータス
 
