@@ -138,6 +138,15 @@
     *   エラー: `401`（認証トークンが無い／無効）。
 
 ### 2.3. センサ (IoT)
+*   **GET `/api/v1/sensors/readings/latest?location_id={location_id}`**
+    *   概要: 指定場所の最新の環境・混雑センサ計測値を取得する。認証不要。
+    *   `location_id`: 必須の空でない文字列。POSTで保存したIDと完全一致で検索する。
+    *   マップ連携では `buildings.id` を `location_id` として送信する（clientの表示用連番とは異なる）。
+    *   レスポンス: `200 { "data": { "id", "location_id", "co2_ppm", "occupancy", "status", "recorded_at", "created_at" } }`。フィールドの形式はPOSTのレスポンスと同じ。未計測は `200 { "data": null }`。
+    *   `recorded_at`、`created_at`、`id` の降順で最新1件を返す。キャッシュは `Cache-Control: no-store`。
+    *   エラー: ID未指定・空文字は400、DB取得失敗は500（共通エラー形式）。
+    *   RLSで非公開のテーブルをservice roleで読み出す。キーはサーバー内のみで使用する。
+
 *   **POST `/api/v1/sensors/readings`**
     *   概要: ハードウェアから1分ごとに送信される場所別のCO2濃度・周辺人数・混雑状態を保存する。計測時刻にはサーバー受信時刻を採用する。
     *   認証: 不要。`Content-Type: application/json` で送信する。

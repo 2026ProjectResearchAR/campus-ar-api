@@ -120,3 +120,50 @@ describe('POST /api/v1/sensors/readings', () => {
     expect(body.error.code).toBe('bad_request')
   })
 })
+
+describe('GET /api/v1/sensors/readings/latest', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('場所で絞り込み、最新の1件を返す', async () => {
+    const reading = {
+      id: 'reading-1', location_id: 'building_1', co2_ppm: 850,
+      occupancy: 7, status: 'moderate',
+      recorded_at: '2026-10-24T00:00:00Z', created_at: '2026-10-24T00:00:00Z',
+    }
+    const calls = stubFetch(() => jsonResponse([reading]))
+    const res = await app.request('/api/v1/sensors/readings/latest?location_id=building_1', {}, TEST_ENV)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ data: reading })
+    expect(res.headers.get('cache-control')).toBe('no-store')
+    expect(calls).toHaveLength(1)
+    expect(calls[0].method).toBe('GET')
+    expect(calls[0].url.pathname).toBe('/rest/v1/environment_readings')
+    expect(calls[0].url.searchParams.get('location_id')).toBe('eq.building_1')
+    expect(calls[0].url.searchParams.get('order')).toBe('recorded_at.desc,created_at.desc,id.desc')
+    expect(calls[0].url.searchParams.get('limit')).toBe('1')
+    expect(calls[0].headers.get('apikey')).toBe(TEST_ENV.SUPABASE_SERVICE_ROLE_KEY)
+  })
+
+  it('未計測ならnullを返す', async () => {
+    stubFetch(() => jsonResponse([]))
+    const res = await app.request('/api/v1/sensors/readings/latest?location_id=unknown', {}, TEST_ENV)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ data: null })
+  })
+
+  it.each(['', '?location_id=', '?location_id=%20'])('場所IDがない場合は400: %s', async (query) => {
+    const calls = stubFetch(() => jsonResponse([]))
+    const res = await app.request(`/api/v1/sensors/readings/latest${query}`, {}, TEST_ENV)
+    expect(res.status).toBe(400)
+    expect(calls).toHaveLength(0)
+  })
+
+  it('DBエラーの詳細を漏らさず500を返す', async () => {
+    stubFetch(() => postgrestError('private database details'))
+    const res = await app.request('/api/v1/sensors/readings/latest?location_id=building_1', {}, TEST_ENV)
+    expect(res.status).toBe(500)
+    expect(await res.json()).toEqual({
+      error: { code: 'internal_server_error', message: '環境・混雑センサ計測値の取得に失敗しました' },
+    })
+  })
+})
